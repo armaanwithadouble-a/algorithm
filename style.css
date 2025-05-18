@@ -261,6 +261,20 @@ button, .interactive {
     display: flex;
     gap: 30px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.5s ease;
+}
+
+.metrics-container.metrics-updating {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.metrics-container.metrics-increasing {
+    background-color: rgba(76, 175, 80, 0.1);  /* Light green tint */
+}
+
+.metrics-container.metrics-decreasing {
+    background-color: rgba(244, 67, 54, 0.1);  /* Light red tint */
 }
 
 .metric-display {
@@ -268,18 +282,100 @@ button, .interactive {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;  /* For positioning the status circle and phone */
+}
+
+.mood-status-circle {
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;  /* Base layer */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* Eyes container */
+.mood-eyes {
+    position: absolute;
+    top: 32%;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    padding: 0 6px;
+    z-index: 2;  /* Above the circle */
+    transition: transform 0.3s ease;
+}
+
+/* Individual eyes */
+.mood-eye {
+    width: 10px;
+    height: 10px;
+    background-color: #ffffff !important;  /* Force pure white */
+    border-radius: 50%;
+    transition: transform 0.3s ease, border-radius 0.3s ease;  /* Add border-radius to transition */
+    position: relative;
+}
+
+/* Eye expressions */
+.mood-status-circle.happy .mood-eye {
+    transform: scaleY(0.7);  /* Make eyes taller */
+    border-radius: 100% 100% 0 0;  /* More rounded top corners */
+    border-bottom-left-radius: 0;  /* Remove bottom corners */
+    border-bottom-right-radius: 0;
+}
+
+.mood-status-circle.neutral .mood-eye {
+    transform: none;  /* No transform for neutral state */
+    border-radius: 50%;  /* Perfect circle */
+}
+
+.mood-status-circle.angry .mood-eye {
+    transform: scaleY(0.7) rotate(180deg);  /* Make eyes taller and flip */
+    border-radius: 100% 100% 0 0;  /* More rounded top corners */
+    border-bottom-left-radius: 0;  /* Remove bottom corners */
+    border-bottom-right-radius: 0;
+}
+
+/* Adjust eye positions for different expressions */
+.mood-status-circle.happy .mood-eyes {
+    transform: translateY(-2px);
+}
+
+.mood-status-circle.neutral .mood-eyes {
+    transform: none;  /* No transform for neutral state */
+}
+
+.mood-status-circle.angry .mood-eyes {
+    transform: translateY(2px);
 }
 
 .metric-label {
-    font-size: 16px;
-    font-weight: 600;
-    color: #262626;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 4px;
 }
 
 .metric-value {
     font-size: 24px;
     font-weight: 700;
     color: #262626;
+    transition: transform 0.2s ease;
+    display: inline-block;
+    text-align: left;
+    transform-origin: left center;
+}
+
+.metrics-updating .metric-value {
+    transform: scale(1.3);
 }
 
 .metric-bar {
@@ -288,12 +384,39 @@ button, .interactive {
     background-color: #e9ecef;
     border-radius: 6px;
     overflow: hidden;
+    position: relative;
 }
 
 .metric-fill {
     height: 100%;
-    transition: all 0.3s ease;
+    transition: width 0.1s linear, background-color 0.1s linear;
     border-radius: 6px;
+    position: relative;
+}
+
+.metrics-updating .metric-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 :root {
@@ -351,4 +474,132 @@ button, .interactive {
     background-color: #45a049;
     box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
     transform: translateY(-50%) translateX(calc(var(--checkmark-slide-distance) + var(--checkmark-hover-extra))) translateZ(0);
+}
+
+/* Debug Panel */
+.debug-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 8px;
+    color: white;
+    font-family: monospace;
+    z-index: 1000;
+    min-width: 250px;
+}
+
+.debug-panel h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 5px;
+}
+
+.debug-control {
+    margin-bottom: 10px;
+}
+
+.debug-control label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.debug-control input[type="range"] {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.debug-value {
+    font-size: 12px;
+    color: #4CAF50;
+    display: inline-block;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Style the range input */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #45a049;
+}
+
+/* Debug toggle button */
+.debug-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 1001;
+    transition: background-color 0.2s;
+}
+
+.debug-toggle:hover {
+    background: #444;
+}
+
+.debug-toggle.active {
+    background: #4CAF50;
+}
+
+.phone-rectangle {
+    position: absolute;
+    top: 48px;
+    right: 24px;
+    width: 140px;
+    height: 12px;
+    background: #181818;
+    border-radius: 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 2;
+    transform: none;
+    overflow: visible;
+    --beam-opacity: 1;
+}
+
+.phone-rectangle::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -64px;
+    width: 220px;
+    height: 64px;
+    background: linear-gradient(0deg, rgba(255,0,200,calc(0.7 * var(--beam-opacity))) 0%, rgba(255,0,200,0.0) 100%);
+    /* Trapezoid: bottom is a bit narrower than phone, top is wider */
+    clip-path: polygon(0% 0%, 100% 0%, 79.5% 100%, 20.5% 100%);
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+.phone-rectangle::after {
+    display: none;
 }

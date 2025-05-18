@@ -188,6 +188,9 @@ const gameState = {
     },
     approvePost: function(post) {
         // Update metrics based on the approved post
+        const oldMood = this.globalMood;
+        const oldEngagement = this.globalEngagement;
+        
         this.globalMood = (this.globalMood * 0.7) + (post.impact.mood * 0.3);
         this.globalEngagement = (this.globalEngagement * 0.7) + (post.impact.engagement * 0.3);
         
@@ -195,13 +198,64 @@ const gameState = {
         this.globalMood = Math.max(0, Math.min(1, this.globalMood));
         this.globalEngagement = Math.max(0, Math.min(1, this.globalEngagement));
         
-        // Update the metrics display
-        updateMetricsDisplay();
+        // Scroll to top smoothly
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
         
-        // Immediately move to next user
-        this.currentUser = getRandomUser();
-        const profileView = createProfileView(this.currentUser);
-        showContent(profileView);
+        // Prevent post selection during animation
+        this.isAnimating = true;
+        
+        // Deselect the post after submission
+        this.selectedPost = null;
+        const selectedCard = document.querySelector('.post-card.selected');
+        if (selectedCard) {
+            selectedCard.classList.remove('selected');
+        }
+        if (activeCheckmark) {
+            removeCheckmark(activeCheckmark);
+            activeCheckmark = null;
+        }
+        
+        // Wait for scroll to complete before starting metrics animation
+        setTimeout(() => {
+            // Animate the metrics
+            const metricsDisplay = document.querySelector('.metrics-container');
+            if (metricsDisplay) {
+                const moodFill = metricsDisplay.querySelector('.metric-display:first-child .metric-fill');
+                const moodValue = metricsDisplay.querySelector('.metric-display:first-child .metric-value');
+                const engagementFill = metricsDisplay.querySelector('.metric-display:last-child .metric-fill');
+                const engagementValue = metricsDisplay.querySelector('.metric-display:last-child .metric-value');
+                
+                // Add animation class to metrics container
+                metricsDisplay.classList.add('metrics-updating');
+                
+                // Add increasing/decreasing class based on the overall change
+                const isIncreasing = (post.impact.mood > oldMood) || (post.impact.engagement > oldEngagement);
+                metricsDisplay.classList.add(isIncreasing ? 'metrics-increasing' : 'metrics-decreasing');
+                
+                // Animate the bars and numbers
+                animateMetric(moodFill, moodValue, oldMood, this.globalMood, 'mood');
+                animateMetric(engagementFill, engagementValue, oldEngagement, this.globalEngagement, 'engagement');
+                
+                // Wait for animations to complete before loading new user
+                setTimeout(() => {
+                    metricsDisplay.classList.remove('metrics-updating', 'metrics-increasing', 'metrics-decreasing');
+                    this.isAnimating = false;
+                    // Move to next user
+                    this.currentUser = getRandomUser();
+                    const profileView = createProfileView(this.currentUser);
+                    showContent(profileView);
+                }, 2000); // Wait 2 seconds for animations to complete
+            } else {
+                // If metrics display isn't found, just move to next user
+                this.isAnimating = false;
+                this.currentUser = getRandomUser();
+                const profileView = createProfileView(this.currentUser);
+                showContent(profileView);
+            }
+        }, 500); // Wait for scroll to complete
     }
 };
 
@@ -312,38 +366,163 @@ function getRandomPosts(min = 3, max = 5) {
     return shuffled.slice(0, numPosts);
 }
 
+// Add color gradient calculation functions
+function calculateMoodColor(value) {
+    // Define color stops for mood gradient
+    const colors = {
+        0: { r: 244, g: 67, b: 54 },    // Red (#F44336)
+        0.5: { r: 255, g: 193, b: 7 },  // Yellow (#FFC107)
+        1: { r: 76, g: 175, b: 80 }     // Green (#4CAF50)
+    };
+    
+    // Find the two closest color stops
+    let lowerStop = 0;
+    let upperStop = 1;
+    
+    if (value <= 0.5) {
+        lowerStop = 0;
+        upperStop = 0.5;
+    } else {
+        lowerStop = 0.5;
+        upperStop = 1;
+    }
+    
+    // Calculate the interpolation factor
+    const factor = (value - lowerStop) / (upperStop - lowerStop);
+    
+    // Interpolate between the two colors
+    const lowerColor = colors[lowerStop];
+    const upperColor = colors[upperStop];
+    
+    const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * factor);
+    const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * factor);
+    const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * factor);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function calculateEngagementColor(value) {
+    // Define color stops for engagement gradient (blue shades)
+    const colors = {
+        0: { r: 33, g: 150, b: 243 },   // Light Blue (#2196F3)
+        0.5: { r: 25, g: 118, b: 210 }, // Medium Blue (#1976D2)
+        1: { r: 13, g: 71, b: 161 }     // Dark Blue (#0D47A1)
+    };
+    
+    // Find the two closest color stops
+    let lowerStop = 0;
+    let upperStop = 1;
+    
+    if (value <= 0.5) {
+        lowerStop = 0;
+        upperStop = 0.5;
+    } else {
+        lowerStop = 0.5;
+        upperStop = 1;
+    }
+    
+    // Calculate the interpolation factor
+    const factor = (value - lowerStop) / (upperStop - lowerStop);
+    
+    // Interpolate between the two colors
+    const lowerColor = colors[lowerStop];
+    const upperColor = colors[upperStop];
+    
+    const r = Math.round(lowerColor.r + (upperColor.r - lowerColor.r) * factor);
+    const g = Math.round(lowerColor.g + (upperColor.g - lowerColor.g) * factor);
+    const b = Math.round(lowerColor.b + (upperColor.b - lowerColor.b) * factor);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
 function createMetricsDisplay() {
-    const metricsContainer = createElement('div', 'metrics-container');
+    const metricsContainer = document.createElement('div');
+    metricsContainer.className = 'metrics-container';
+
+    // Create mood metric display
+    const moodDisplay = document.createElement('div');
+    moodDisplay.className = 'metric-display';
     
-    const moodDisplay = createElement('div', 'metric-display');
-    const moodLabel = createElement('div', 'metric-label', 'Global Mood');
-    const moodValue = createElement('div', 'metric-value');
-    const moodBar = createElement('div', 'metric-bar');
-    const moodFill = createElement('div', 'metric-fill');
+    const moodLabel = document.createElement('div');
+    moodLabel.className = 'metric-label';
+    moodLabel.textContent = 'Global Mood';
     
-    // Set mood bar color based on value
-    const moodColor = gameState.globalMood > 0.5 ? 
-        `hsl(${120 * gameState.globalMood}, 70%, 50%)` : 
-        `hsl(${0}, 70%, ${50 + (gameState.globalMood * 30)}%)`;
-    moodFill.style.width = `${gameState.globalMood * 100}%`;
-    moodFill.style.backgroundColor = moodColor;
+    // Create mood status circle with eyes
+    const moodStatusCircle = document.createElement('div');
+    moodStatusCircle.className = 'mood-status-circle';
+    
+    // Add eyes
+    const eyesContainer = document.createElement('div');
+    eyesContainer.className = 'mood-eyes';
+    const leftEye = document.createElement('div');
+    leftEye.className = 'mood-eye';
+    const rightEye = document.createElement('div');
+    rightEye.className = 'mood-eye';
+    eyesContainer.appendChild(leftEye);
+    eyesContainer.appendChild(rightEye);
+    moodStatusCircle.appendChild(eyesContainer);
+    
+    moodLabel.appendChild(moodStatusCircle);
+    
+    const moodValue = document.createElement('div');
+    moodValue.className = 'metric-value';
     moodValue.textContent = `${Math.round(gameState.globalMood * 100)}%`;
     
+    const moodBar = document.createElement('div');
+    moodBar.className = 'metric-bar';
+    const moodFill = document.createElement('div');
+    moodFill.className = 'metric-fill';
     moodBar.appendChild(moodFill);
+    
+    // Set initial mood color using gradient
+    const moodColor = calculateMoodColor(gameState.globalMood);
+    moodFill.style.backgroundColor = moodColor;
+    moodStatusCircle.style.backgroundColor = moodColor;
+    
+    // Set initial expression
+    if (gameState.globalMood === 1) {
+        moodStatusCircle.classList.add('happy');
+    } else if (gameState.globalMood === 0.5) {
+        moodStatusCircle.classList.add('neutral');
+    } else if (gameState.globalMood === 0) {
+        moodStatusCircle.classList.add('angry');
+    } else {
+        moodStatusCircle.classList.add(gameState.globalMood > 0.5 ? 'happy' : 'angry');
+    }
+    
+    moodFill.style.width = `${gameState.globalMood * 100}%`;
+    
     moodDisplay.appendChild(moodLabel);
     moodDisplay.appendChild(moodValue);
     moodDisplay.appendChild(moodBar);
     
-    const engagementDisplay = createElement('div', 'metric-display');
-    const engagementLabel = createElement('div', 'metric-label', 'Global Engagement');
-    const engagementValue = createElement('div', 'metric-value');
-    const engagementBar = createElement('div', 'metric-bar');
-    const engagementFill = createElement('div', 'metric-fill');
+    const engagementDisplay = document.createElement('div');
+    engagementDisplay.className = 'metric-display';
     
-    // Set engagement bar color (blue gradient)
-    engagementFill.style.width = `${gameState.globalEngagement * 100}%`;
-    engagementFill.style.backgroundColor = `hsl(${200 + (gameState.globalEngagement * 40)}, 70%, 50%)`;
+    const engagementLabel = document.createElement('div');
+    engagementLabel.className = 'metric-label';
+    engagementLabel.textContent = 'Global Engagement';
+    
+    // Add phone-like rectangle as a separate element
+    const phoneRectangle = document.createElement('div');
+    phoneRectangle.className = 'phone-rectangle';
+    // Set initial magenta beam opacity based on engagement
+    phoneRectangle.style.setProperty('--beam-opacity', gameState.globalEngagement);
+    engagementDisplay.appendChild(phoneRectangle);  // Add to display instead of label
+    
+    const engagementValue = document.createElement('div');
+    engagementValue.className = 'metric-value';
     engagementValue.textContent = `${Math.round(gameState.globalEngagement * 100)}%`;
+    
+    const engagementBar = document.createElement('div');
+    engagementBar.className = 'metric-bar';
+    const engagementFill = document.createElement('div');
+    engagementFill.className = 'metric-fill';
+    
+    // Set initial engagement color using gradient
+    const engagementColor = calculateEngagementColor(gameState.globalEngagement);
+    engagementFill.style.backgroundColor = engagementColor;
+    engagementFill.style.width = `${gameState.globalEngagement * 100}%`;
     
     engagementBar.appendChild(engagementFill);
     engagementDisplay.appendChild(engagementLabel);
@@ -363,19 +542,101 @@ function updateMetricsDisplay() {
         const moodValue = metricsDisplay.querySelector('.metric-display:first-child .metric-value');
         const engagementFill = metricsDisplay.querySelector('.metric-display:last-child .metric-fill');
         const engagementValue = metricsDisplay.querySelector('.metric-display:last-child .metric-value');
+        const statusCircle = metricsDisplay.querySelector('.mood-status-circle');
         
-        // Update mood
-        const moodColor = gameState.globalMood > 0.5 ? 
-            `hsl(${120 * gameState.globalMood}, 70%, 50%)` : 
-            `hsl(${0}, 70%, ${50 + (gameState.globalMood * 30)}%)`;
+        // Update mood with gradient color
+        const moodColor = calculateMoodColor(gameState.globalMood);
         moodFill.style.width = `${gameState.globalMood * 100}%`;
         moodFill.style.backgroundColor = moodColor;
         moodValue.textContent = `${Math.round(gameState.globalMood * 100)}%`;
         
-        // Update engagement
+        // Update mood status circle
+        if (statusCircle) {
+            statusCircle.style.backgroundColor = moodColor;
+            // Remove any inline styles from eyes to ensure they stay white
+            const eyes = statusCircle.querySelectorAll('.mood-eye');
+            eyes.forEach(eye => {
+                eye.style.backgroundColor = '';
+                // Calculate eye expression based on exact mood
+                const mood = gameState.globalMood;
+                
+                // Calculate how far we are from neutral (0.5)
+                const distanceFromNeutral = Math.abs(mood - 0.5);
+                // Calculate the transition factor (0 to 1) based on distance from neutral
+                const transitionFactor = Math.min(distanceFromNeutral * 4, 1); // Full transition by 0.25 away from neutral
+                
+                // Scale increases gradually from 1 to 0.7 as we move away from neutral
+                const scale = 1 - (transitionFactor * 0.3);
+                
+                // Border radius transitions gradually from 50% to 100% as we move away from neutral
+                const borderRadius = 50 + (transitionFactor * 50);
+                
+                // Calculate rotation based on mood
+                // At 0.5: 0 degrees (neutral)
+                // At 0.0: 180 degrees (angry)
+                // At 1.0: 0 degrees (happy)
+                const rotation = mood < 0.5 ? (0.5 - mood) * 360 : 0;
+                
+                if (mood === 0.5) {
+                    // Neutral at exactly 50%
+                    eye.style.transform = 'none';
+                    eye.style.borderRadius = '50%';
+                } else if (mood > 0.5) {
+                    // Happy: top rounded
+                    eye.style.transform = `scaleY(${scale})`;
+                    eye.style.borderRadius = `${borderRadius}% ${borderRadius}% 0 0`;
+                    eye.style.borderBottomLeftRadius = '0';
+                    eye.style.borderBottomRightRadius = '0';
+                } else {
+                    // Angry: bottom rounded (no rotation needed)
+                    eye.style.transform = `scaleY(${scale})`;
+                    eye.style.borderRadius = `0 0 ${borderRadius}% ${borderRadius}%`;
+                    eye.style.borderTopLeftRadius = '0';
+                    eye.style.borderTopRightRadius = '0';
+                }
+            });
+
+            // Update eye container position
+            const eyesContainer = statusCircle.querySelector('.mood-eyes');
+            if (eyesContainer) {
+                const mood = gameState.globalMood;
+                if (mood === 0.5) {
+                    eyesContainer.style.transform = 'none';
+                } else if (mood > 0.5) {
+                    // Move up more as mood increases
+                    const translateY = -2 * (mood - 0.5) * 2; // Maps 0.5-1.0 to 0 to -2
+                    eyesContainer.style.transform = `translateY(${translateY}px)`;
+                } else {
+                    // Move down more as mood decreases
+                    const translateY = 2 * (0.5 - mood) * 2; // Maps 0.5-0.0 to 0 to 2
+                    eyesContainer.style.transform = `translateY(${translateY}px)`;
+                }
+            }
+        }
+        
+        // Update engagement with gradient color
+        const engagementColor = calculateEngagementColor(gameState.globalEngagement);
         engagementFill.style.width = `${gameState.globalEngagement * 100}%`;
-        engagementFill.style.backgroundColor = `hsl(${200 + (gameState.globalEngagement * 40)}, 70%, 50%)`;
+        engagementFill.style.backgroundColor = engagementColor;
         engagementValue.textContent = `${Math.round(gameState.globalEngagement * 100)}%`;
+        
+        // Set magenta beam opacity based on engagement
+        const phoneRectangle = metricsDisplay.querySelector('.phone-rectangle');
+        if (phoneRectangle) {
+            phoneRectangle.style.setProperty('--beam-opacity', gameState.globalEngagement);
+        }
+        
+        // Update debug panel values if they exist
+        const moodDebugValue = document.querySelector('.debug-control:first-child .debug-value');
+        const engagementDebugValue = document.querySelector('.debug-control:last-child .debug-value');
+        if (moodDebugValue) {
+            moodDebugValue.textContent = `${Math.round(gameState.globalMood * 100)}%`;
+            document.querySelector('.debug-control:first-child input').value = gameState.globalMood * 100;
+        }
+        if (engagementDebugValue) {
+            engagementDebugValue.textContent = `${Math.round(gameState.globalEngagement * 100)}%`;
+            document.querySelector('.debug-control:last-child input').value = gameState.globalEngagement * 100;
+        }
     }
 }
 
@@ -405,6 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function handlePostClick(event, post) {
+    if (gameState.isAnimating) {
+        return; // Prevent selection during animation
+    }
     console.log(`[Card Click] Post clicked: "${post.title}" (ID: ${post.id})`);
     
     // Prevent click if clicking the checkmark
@@ -501,9 +765,6 @@ function createProfileView(user) {
     // Get random posts from all posts, regardless of author
     const randomPosts = getRandomPosts();
     
-    // Update global metrics based on the new posts
-    gameState.updateMetrics(randomPosts);
-    
     const profileContainer = createElement('div', 'profile-container');
     
     // Add metrics display at the top
@@ -590,7 +851,73 @@ function createProfileView(user) {
     return profileContainer;
 }
 
-// Game initialization
+// Add debug panel functionality
+function createDebugPanel() {
+    // Create debug toggle button
+    const debugToggle = document.createElement('button');
+    debugToggle.className = 'debug-toggle';
+    debugToggle.textContent = 'Debug';
+    document.body.appendChild(debugToggle);
+
+    // Create debug panel
+    const debugPanel = document.createElement('div');
+    debugPanel.className = 'debug-panel';
+    debugPanel.style.display = 'none';
+    
+    // Add title
+    const title = document.createElement('h3');
+    title.textContent = 'Debug Controls';
+    debugPanel.appendChild(title);
+    
+    // Create mood control
+    const moodControl = document.createElement('div');
+    moodControl.className = 'debug-control';
+    moodControl.innerHTML = `
+        <label>Mood: <span class="debug-value">${Math.round(gameState.globalMood * 100)}%</span></label>
+        <input type="range" min="0" max="100" value="${gameState.globalMood * 100}" step="1">
+    `;
+    
+    // Create engagement control
+    const engagementControl = document.createElement('div');
+    engagementControl.className = 'debug-control';
+    engagementControl.innerHTML = `
+        <label>Engagement: <span class="debug-value">${Math.round(gameState.globalEngagement * 100)}%</span></label>
+        <input type="range" min="0" max="100" value="${gameState.globalEngagement * 100}" step="1">
+    `;
+    
+    debugPanel.appendChild(moodControl);
+    debugPanel.appendChild(engagementControl);
+    document.body.appendChild(debugPanel);
+    
+    // Add event listeners
+    debugToggle.addEventListener('click', () => {
+        const isVisible = debugPanel.style.display !== 'none';
+        debugPanel.style.display = isVisible ? 'none' : 'block';
+        debugToggle.classList.toggle('active');
+    });
+    
+    // Handle mood slider changes
+    const moodSlider = moodControl.querySelector('input');
+    const moodValue = moodControl.querySelector('.debug-value');
+    moodSlider.addEventListener('input', (e) => {
+        const value = e.target.value / 100;
+        gameState.globalMood = value;
+        moodValue.textContent = `${e.target.value}%`;
+        updateMetricsDisplay();
+    });
+    
+    // Handle engagement slider changes
+    const engagementSlider = engagementControl.querySelector('input');
+    const engagementValue = engagementControl.querySelector('.debug-value');
+    engagementSlider.addEventListener('input', (e) => {
+        const value = e.target.value / 100;
+        gameState.globalEngagement = value;
+        engagementValue.textContent = `${e.target.value}%`;
+        updateMetricsDisplay();
+    });
+}
+
+// Update the initGame function to create the debug panel
 function initGame() {
     const startScreen = createElement('div', 'start-screen');
     const title = createElement('h1', 'game-title', 'You Are The Algorithm');
@@ -603,6 +930,9 @@ function initGame() {
     startScreen.appendChild(title);
     startScreen.appendChild(startButton);
     showContent(startScreen);
+    
+    // Create debug panel
+    createDebugPanel();
 }
 
 // Start the game
@@ -618,3 +948,98 @@ async function startGame() {
 // Initialize the game when the page loads
 document.addEventListener('DOMContentLoaded', initGame); 
 document.addEventListener('DOMContentLoaded', initGame); 
+
+// Update animateMetric function
+function animateMetric(fillElement, valueElement, startValue, endValue, type) {
+    const duration = 1500;
+    const startTime = performance.now();
+    const startPercent = startValue * 100;
+    const endPercent = endValue * 100;
+    
+    function updateMetric(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const currentPercent = startPercent + (endPercent - startPercent) * easeProgress;
+        const currentValue = startValue + (endValue - startValue) * easeProgress;
+        
+        fillElement.style.width = `${currentPercent}%`;
+        
+        if (type === 'mood') {
+            const color = calculateMoodColor(currentValue);
+            fillElement.style.backgroundColor = color;
+            
+            // Update status circle color and expression
+            const statusCircle = document.querySelector('.mood-status-circle');
+            if (statusCircle) {
+                statusCircle.style.backgroundColor = color;
+                statusCircle.classList.remove('happy', 'neutral', 'angry');
+                if (currentValue === 1) {
+                    statusCircle.classList.add('happy');
+                } else if (currentValue === 0.5) {
+                    statusCircle.classList.add('neutral');
+                } else if (currentValue === 0) {
+                    statusCircle.classList.add('angry');
+                } else {
+                    statusCircle.classList.add(currentValue > 0.5 ? 'happy' : 'angry');
+                }
+                // Update eyes expression
+                const eyes = statusCircle.querySelectorAll('.mood-eye');
+                eyes.forEach(eye => {
+                    eye.style.backgroundColor = '';
+                    // Calculate eye expression based on exact mood
+                    const mood = currentValue;
+                    const distanceFromNeutral = Math.abs(mood - 0.5);
+                    const transitionFactor = Math.min(distanceFromNeutral * 4, 1);
+                    const scale = 1 - (transitionFactor * 0.3);
+                    const borderRadius = 50 + (transitionFactor * 50);
+                    if (mood === 0.5) {
+                        eye.style.transform = 'none';
+                        eye.style.borderRadius = '50%';
+                    } else if (mood > 0.5) {
+                        eye.style.transform = `scaleY(${scale})`;
+                        eye.style.borderRadius = `${borderRadius}% ${borderRadius}% 0 0`;
+                        eye.style.borderBottomLeftRadius = '0';
+                        eye.style.borderBottomRightRadius = '0';
+                    } else {
+                        eye.style.transform = `scaleY(${scale})`;
+                        eye.style.borderRadius = `0 0 ${borderRadius}% ${borderRadius}%`;
+                        eye.style.borderTopLeftRadius = '0';
+                        eye.style.borderTopRightRadius = '0';
+                    }
+                });
+                // Update eye container position
+                const eyesContainer = statusCircle.querySelector('.mood-eyes');
+                if (eyesContainer) {
+                    const mood = currentValue;
+                    if (mood === 0.5) {
+                        eyesContainer.style.transform = 'none';
+                    } else if (mood > 0.5) {
+                        const translateY = -2 * (mood - 0.5) * 2;
+                        eyesContainer.style.transform = `translateY(${translateY}px)`;
+                    } else {
+                        const translateY = 2 * (0.5 - mood) * 2;
+                        eyesContainer.style.transform = `translateY(${translateY}px)`;
+                    }
+                }
+            }
+        } else {
+            // Use gradient for engagement
+            const color = calculateEngagementColor(currentValue);
+            fillElement.style.backgroundColor = color;
+            // Update magenta beam opacity
+            const phoneRectangle = document.querySelector('.phone-rectangle');
+            if (phoneRectangle) {
+                phoneRectangle.style.setProperty('--beam-opacity', currentValue);
+            }
+        }
+        
+        valueElement.textContent = `${Math.round(currentValue * 100)}%`;
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateMetric);
+        }
+    }
+    
+    requestAnimationFrame(updateMetric);
+} 
