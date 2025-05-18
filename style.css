@@ -128,9 +128,24 @@ body {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     cursor: pointer;
-    z-index: 1;  /* Base z-index for all cards */
-    transform: translateZ(0);  /* Create stacking context */
-    will-change: transform, z-index;  /* Optimize for z-index changes */
+    z-index: var(--z-card);
+    transform: translateZ(0);
+    will-change: transform, z-index;
+}
+
+/* Create a wrapper for the card content */
+.post-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .post-card:hover {
@@ -138,16 +153,16 @@ body {
 }
 
 .post-card.selected {
-    transform: scale(1.05) translateZ(0);  /* Maintain stacking context while scaling */
+    transform: scale(1.05) translateZ(0);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    /* z-index will be set via JavaScript */
+    z-index: var(--z-selected-card);
 }
 
 .post-header,
 .post-content,
 .post-metrics {
     position: relative;
-    z-index: 0;
+    z-index: 2;  /* Place content above the card background */
 }
 
 .post-header {
@@ -281,11 +296,26 @@ button, .interactive {
     border-radius: 6px;
 }
 
+:root {
+    /* Checkmark positioning variables */
+    --checkmark-width: 64px;
+    --checkmark-height: 32px;
+    --checkmark-initial-right: -0px;  /* Starting position */
+    --checkmark-slide-distance: 30px;  /* Distance to slide out */
+    --checkmark-hover-extra: 8px;      /* Extra distance on hover */
+    --checkmark-padding-right: 8px;
+
+    /* Z-index layers */
+    --z-checkmark: 1;        /* Checkmark base layer */
+    --z-card: 2;            /* Card base layer */
+    --z-selected-card: 3;   /* Selected card layer */
+}
+
 /* Post Selection Styles */
 .approval-checkmark {
-    position: fixed;
-    width: 64px;
-    height: 32px;
+    position: absolute;
+    width: var(--checkmark-width);
+    height: var(--checkmark-height);
     background-color: #4CAF50;
     border-radius: 4px;
     display: flex;
@@ -297,23 +327,28 @@ button, .interactive {
     box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     opacity: 0;
     pointer-events: none;
-    z-index: 2;  /* Base z-index for checkmark */
-    transform: translateY(-50%) translateX(0) translateZ(0);  /* Create stacking context */
-    will-change: transform, opacity;  /* Optimize for animations */
+    z-index: 0;  /* Place checkmark below the card background */
+    transform: translateY(-50%) translateX(0) translateZ(0);
+    will-change: transform, opacity;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
                 opacity 0.2s ease,
                 background-color 0.2s ease,
-                box-shadow 0.2s ease;  /* Explicitly define transitions */
+                box-shadow 0.2s ease;
     visibility: hidden;
-    padding-right: 8px;
+    padding-right: var(--checkmark-padding-right);
+    right: var(--checkmark-initial-right);
 }
 
 .approval-checkmark.visible {
     visibility: visible;
 }
 
+.approval-checkmark.slided-out {
+    transform: translateY(-50%) translateX(var(--checkmark-slide-distance)) translateZ(0);
+}
+
 .approval-checkmark:hover {
     background-color: #45a049;
     box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
-    transform: translateY(-50%) translateX(36px) translateZ(0);  /* Maintain stacking context */
+    transform: translateY(-50%) translateX(calc(var(--checkmark-slide-distance) + var(--checkmark-hover-extra))) translateZ(0);
 }

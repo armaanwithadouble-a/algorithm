@@ -222,6 +222,8 @@ function createApprovalCheckmark() {
 
 function removeCheckmark(checkmark) {
     if (checkmark && checkmark.parentNode) {
+        // Move checkmark back to body before removing
+        document.body.appendChild(checkmark);
         checkmark.parentNode.removeChild(checkmark);
     }
 }
@@ -229,16 +231,16 @@ function removeCheckmark(checkmark) {
 function moveCheckmarkToCard(targetCard, checkmark) {
     const postTitle = targetCard.querySelector('.post-title').textContent;
     console.log(`[Checkmark] Positioning checkmark for post: "${postTitle}"`);
-    const rect = targetCard.getBoundingClientRect();
     
     // Reset checkmark state
-    checkmark.style.transform = 'translateY(-50%) translateX(0) translateZ(0)';
+    checkmark.classList.remove('slided-out');
     checkmark.style.opacity = '0';
     checkmark.style.pointerEvents = 'none';
     
-    // Position the checkmark at the card's location
-    checkmark.style.right = `${window.innerWidth - rect.right - 12}px`;
-    checkmark.style.top = `${rect.top + (rect.height / 2) - 16}px`;
+    // Position the checkmark relative to the card
+    targetCard.style.position = 'relative';  // Ensure card has relative positioning
+    targetCard.appendChild(checkmark);  // Move checkmark inside the card
+    checkmark.style.top = '50%';  // Center vertically
     
     // Force a reflow to ensure the position is set
     checkmark.offsetHeight;
@@ -249,19 +251,23 @@ function moveCheckmarkToCard(targetCard, checkmark) {
     requestAnimationFrame(() => {
         checkmark.style.opacity = '1';
         checkmark.style.pointerEvents = 'auto';
-        checkmark.style.transform = 'translateY(-50%) translateX(50px) translateZ(0)';
+        checkmark.classList.add('slided-out');
     });
 }
 
 function animateCheckmarkOut(checkmark, postTitle) {
     console.log(`[Checkmark] Starting checkmark animation out for post: "${postTitle}"`);
-    checkmark.style.transform = 'translateY(-50%) translateX(0) translateZ(0)';
+    
+    // First animate the checkmark back
+    checkmark.classList.remove('slided-out');
     checkmark.style.opacity = '0';
     checkmark.style.pointerEvents = 'none';
     
     return new Promise(resolve => {
+        // Wait for the animation to complete before removing
         setTimeout(() => {
             console.log(`[Checkmark] Checkmark animation out complete for post: "${postTitle}"`);
+            // Only remove after animation is done
             removeCheckmark(checkmark);
             resolve();
         }, 300);
@@ -373,9 +379,8 @@ function updateMetricsDisplay() {
     }
 }
 
-// Add this after the gameState object
+// Update background click handler
 document.addEventListener('DOMContentLoaded', () => {
-    // Add click handler to the content area to handle background clicks
     document.getElementById('content').addEventListener('click', (event) => {
         if (event.target.id === 'content' || event.target.closest('.profile-container')) {
             console.log('[Background Click] Clicked on background area');
@@ -384,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const postTitle = selectedCard.querySelector('.post-title').textContent;
                 console.log(`[Background Click] Starting deselection for post: "${postTitle}"`);
                 gameState.selectedPost = null;
-                selectedCard.classList.remove('selected');
+                selectedCard.classList.remove('selected');  // This will handle z-index via CSS
                 
                 // Animate and remove checkmark
                 if (activeCheckmark) {
@@ -392,11 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         activeCheckmark = null;
                     });
                 }
-                
-                setTimeout(() => {
-                    console.log(`[Background Click] Card deselection complete for post: "${postTitle}"`);
-                    selectedCard.style.zIndex = '1';
-                }, 300);
             } else {
                 console.log('[Background Click] No card was selected, nothing to deselect');
             }
@@ -435,11 +435,6 @@ function handlePostClick(event, post) {
                     activeCheckmark = null;
                 });
             }
-            
-            setTimeout(() => {
-                console.log(`[Card Click] Card deselection complete for post: "${post.title}"`);
-                selectedCard.style.zIndex = '1';
-            }, 300);
         }
         return;
     }
@@ -455,8 +450,7 @@ function handlePostClick(event, post) {
         
         // Start selection of new card immediately
         gameState.selectedPost = post;
-        clickedCard.style.zIndex = '3';
-        clickedCard.classList.add('selected');
+        clickedCard.classList.add('selected');  // This will set the z-index via CSS
         
         // Create new checkmark and position it
         const newCheckmark = createApprovalCheckmark();
@@ -464,25 +458,13 @@ function handlePostClick(event, post) {
         
         // Animate out old checkmark
         if (activeCheckmark) {
-            // Start animating out the old checkmark
-            activeCheckmark.style.transform = 'translateY(-50%) translateX(0) translateZ(0)';
-            activeCheckmark.style.opacity = '0';
-            activeCheckmark.style.pointerEvents = 'none';
-            
-            setTimeout(() => {
+            animateCheckmarkOut(activeCheckmark, currentPostTitle).then(() => {
                 console.log(`[Card Click] Previous checkmark removed for post: "${currentPostTitle}"`);
-                removeCheckmark(activeCheckmark);
-                activeCheckmark = newCheckmark; // Update active checkmark reference
-            }, 300);
+                activeCheckmark = newCheckmark;
+            });
         } else {
             activeCheckmark = newCheckmark;
         }
-        
-        // Reset z-index of deselected card after animation
-        setTimeout(() => {
-            console.log(`[Card Click] Previous card deselection complete for post: "${currentPostTitle}"`);
-            currentSelectedCard.style.zIndex = '1';
-        }, 300);
     } else {
         console.log(`[Card Click] No card currently selected, selecting: "${post.title}"`);
         selectNewCard(post, clickedCard);
@@ -498,9 +480,7 @@ function selectNewCard(post, cardToSelect) {
     console.log(`[Selection] Starting selection of post: "${post.title}"`);
     gameState.selectedPost = post;
     
-    // Set z-index and add selected class immediately
-    console.log(`[Selection] Setting z-index to 3 for post: "${post.title}"`);
-    cardToSelect.style.zIndex = '3';
+    // Add selected class which will handle z-index via CSS
     cardToSelect.classList.add('selected');
     
     // Create and position new checkmark
