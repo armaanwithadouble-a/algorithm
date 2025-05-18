@@ -1,0 +1,319 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #fafafa;
+    color: #262626;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+#game-container {
+    width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    background-color: #fafafa;
+}
+
+#content {
+    max-width: 935px;
+    width: 100%;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+/* Profile Styles */
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.profile-avatar {
+    font-size: 80px;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 10px;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.stat-label {
+    color: #8e8e8e;
+    font-size: 14px;
+}
+
+.profile-mood {
+    font-size: 16px;
+    color: #8e8e8e;
+    margin-bottom: 15px;
+}
+
+.profile-interests {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.interest-tag {
+    background-color: #efefef;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #262626;
+}
+
+/* Posts Grid */
+.posts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 30px;
+    position: relative;
+    padding: 20px 40px;
+}
+
+.post-card {
+    background: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    overflow: visible;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    cursor: pointer;
+    z-index: 1;  /* Base z-index for all cards */
+    transform: translateZ(0);  /* Create stacking context */
+    will-change: transform, z-index;  /* Optimize for z-index changes */
+}
+
+.post-card:hover {
+    transform: translateY(-2px);
+}
+
+.post-card.selected {
+    transform: scale(1.05) translateZ(0);  /* Maintain stacking context while scaling */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    /* z-index will be set via JavaScript */
+}
+
+.post-header,
+.post-content,
+.post-metrics {
+    position: relative;
+    z-index: 0;
+}
+
+.post-header {
+    padding: 12px;
+    border-bottom: 1px solid #dbdbdb;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.post-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #262626;
+    font-weight: 600;
+}
+
+.post-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #262626;
+}
+
+.post-content {
+    padding: 15px;
+    font-size: 14px;
+    color: #262626;
+}
+
+.post-metrics {
+    padding: 12px;
+    border-top: 1px solid #dbdbdb;
+    display: flex;
+    justify-content: space-between;
+    color: #8e8e8e;
+    font-size: 14px;
+}
+
+/* Start Screen Styles */
+.start-screen {
+    text-align: center;
+    padding: 40px;
+}
+
+.game-title {
+    font-size: 36px;
+    margin-bottom: 30px;
+    color: #262626;
+}
+
+.start-button {
+    background-color: #0095f6;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.start-button:hover {
+    background-color: #0081d6;
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Add smooth transitions for interactive elements */
+button, .interactive {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Hide elements that should be invisible */
+.hidden {
+    display: none !important;
+}
+
+/* Metrics Display */
+.metrics-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    gap: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.metric-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #262626;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #262626;
+}
+
+.metric-bar {
+    width: 100%;
+    height: 12px;
+    background-color: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.metric-fill {
+    height: 100%;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+/* Post Selection Styles */
+.approval-checkmark {
+    position: fixed;
+    width: 64px;
+    height: 32px;
+    background-color: #4CAF50;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;  /* Base z-index for checkmark */
+    transform: translateY(-50%) translateX(0) translateZ(0);  /* Create stacking context */
+    will-change: transform, opacity;  /* Optimize for animations */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.2s ease,
+                background-color 0.2s ease,
+                box-shadow 0.2s ease;  /* Explicitly define transitions */
+    visibility: hidden;
+    padding-right: 8px;
+}
+
+.approval-checkmark.visible {
+    visibility: visible;
+}
+
+.approval-checkmark:hover {
+    background-color: #45a049;
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+    transform: translateY(-50%) translateX(36px) translateZ(0);  /* Maintain stacking context */
+}
