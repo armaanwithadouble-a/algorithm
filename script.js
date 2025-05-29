@@ -1,54 +1,68 @@
-// Fake users data
-const users = [
-    {
-        name: "Alex Thompson",
-        mood: "happy",
-        interests: ["memes", "gaming", "tech"],
-        avatar: "👨‍💻"
-    },
-    {
-        name: "Sarah Chen",
-        mood: "angry",
-        interests: ["politics", "news", "environment"],
-        avatar: "👩‍💼"
-    },
-    {
-        name: "Marcus Johnson",
-        mood: "bored",
-        interests: ["sports", "fitness", "food"],
-        avatar: "🏋️‍♂️"
-    },
-    {
-        name: "Priya Patel",
-        mood: "excited",
-        interests: ["fashion", "travel", "photography"],
-        avatar: "👗"
-    },
-    {
-        name: "Jordan Lee",
-        mood: "neutral",
-        interests: ["music", "art", "books"],
-        avatar: "🎨"
-    },
-    {
-        name: "Emma Wilson",
-        mood: "sad",
-        interests: ["movies", "animals", "cooking"],
-        avatar: "🍳"
-    },
-    {
-        name: "Carlos Rodriguez",
-        mood: "confused",
-        interests: ["science", "space", "history"],
-        avatar: "🔬"
-    },
-    {
-        name: "Zoe Kim",
-        mood: "energetic",
-        interests: ["dance", "fashion", "social media"],
-        avatar: "💃"
-    }
+// Random data arrays for generating usernames and user properties
+const adjectives = [
+    "swift", "clever", "bright", "wild", "gentle", "fierce", "sneaky", "happy", 
+    "brave", "quiet", "loud", "tiny", "giant", "smooth", "rough", "wise", 
+    "silly", "crazy", "calm", "energetic", "lazy", "busy", "sleepy", "alert",
+    "funny", "serious", "cool", "warm", "cold", "hot", "fresh", "old",
+    "young", "fast", "slow", "strong", "weak", "smart", "curious", "mysterious"
 ];
+
+const animals = [
+    "cat", "dog", "fox", "wolf", "bear", "lion", "tiger", "eagle", "owl", "hawk",
+    "dolphin", "whale", "shark", "turtle", "penguin", "panda", "koala", "kangaroo",
+    "rabbit", "squirrel", "hedgehog", "raccoon", "otter", "seal", "deer", "elk",
+    "moose", "horse", "zebra", "giraffe", "elephant", "rhino", "hippo", "monkey",
+    "gorilla", "chimpanzee", "lemur", "sloth", "armadillo", "platypus"
+];
+
+const moods = ["happy", "angry", "bored", "excited", "neutral", "sad", "confused", "energetic"];
+
+const interestCategories = [
+    ["memes", "gaming", "tech"],
+    ["politics", "news", "environment"],
+    ["sports", "fitness", "food"],
+    ["fashion", "travel", "photography"],
+    ["music", "art", "books"],
+    ["movies", "animals", "cooking"],
+    ["science", "space", "history"],
+    ["dance", "fashion", "social media"],
+    ["coding", "startups", "ai"],
+    ["nature", "hiking", "camping"],
+    ["cars", "motorcycles", "racing"],
+    ["comedy", "memes", "viral videos"]
+];
+
+const avatars = [
+    "👨‍💻", "👩‍💼", "🏋️‍♂️", "👗", "🎨", "🍳", "🔬", "💃", "🚀", "🌟",
+    "🦊", "🐱", "🐶", "🐺", "🦅", "🐧", "🐼", "🦘", "🐰", "🦔",
+    "🌮", "🍕", "☕", "🎮", "📱", "💻", "🎵", "📚", "🎭", "🏆",
+    "🌈", "⚡", "🔥", "❄️", "🌊", "🌙", "☀️", "🎯", "🎪", "🎨"
+];
+
+// Function to generate random username
+function generateRandomUsername() {
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+    return `@${adjective}_${animal}`;
+}
+
+// Function to generate random user
+function generateRandomUser() {
+    const username = generateRandomUsername();
+    const mood = moods[Math.floor(Math.random() * moods.length)];
+    const interests = interestCategories[Math.floor(Math.random() * interestCategories.length)];
+    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+    
+    return {
+        name: username,
+        mood: mood,
+        interests: interests,
+        avatar: avatar
+    };
+}
+
+// Generate random users
+const users = Array.from({ length: 8 }, () => generateRandomUser());
 
 // Fake posts data
 const posts = [
@@ -61,7 +75,7 @@ const posts = [
             mood: 0.8,    // 0 to 1 scale, how much it affects user mood
             engagement: 0.9  // 0 to 1 scale, how likely to drive engagement
         },
-        author: users[0]
+        author: generateRandomUser()
     },
     {
         id: 2,
@@ -72,7 +86,7 @@ const posts = [
             mood: 0.7,
             engagement: 0.85
         },
-        author: users[1]
+        author: generateRandomUser()
     },
     {
         id: 3,
@@ -83,7 +97,7 @@ const posts = [
             mood: 0.9,
             engagement: 0.95
         },
-        author: users[2]
+        author: generateRandomUser()
     },
     {
         id: 4,
@@ -94,7 +108,7 @@ const posts = [
             mood: 0.6,
             engagement: 0.75
         },
-        author: users[3]
+        author: generateRandomUser()
     },
     {
         id: 5,
@@ -105,7 +119,7 @@ const posts = [
             mood: 0.8,
             engagement: 0.85
         },
-        author: users[4]
+        author: generateRandomUser()
     },
     {
         id: 6,
@@ -116,7 +130,7 @@ const posts = [
             mood: 0.7,
             engagement: 0.8
         },
-        author: users[5]
+        author: generateRandomUser()
     },
     {
         id: 7,
@@ -127,7 +141,7 @@ const posts = [
             mood: 0.95,
             engagement: 1.0
         },
-        author: users[6]
+        author: generateRandomUser()
     },
     {
         id: 8,
@@ -138,7 +152,7 @@ const posts = [
             mood: 0.85,
             engagement: 0.9
         },
-        author: users[7]
+        author: generateRandomUser()
     },
     {
         id: 9,
@@ -149,7 +163,7 @@ const posts = [
             mood: 0.75,
             engagement: 0.8
         },
-        author: users[0]
+        author: generateRandomUser()
     },
     {
         id: 10,
@@ -160,7 +174,7 @@ const posts = [
             mood: 0.8,
             engagement: 0.85
         },
-        author: users[1]
+        author: generateRandomUser()
     }
 ];
 
@@ -784,8 +798,8 @@ function createProfileView(user) {
     const stats = createElement('div', 'profile-stats');
     stats.innerHTML = `
         <div class="stat-item">
-            <span class="stat-value">${randomPosts.length}</span>
-            <span class="stat-label">Feed Posts</span>
+            <span class="stat-value">${Math.floor(Math.random() * 46) + 5}</span>
+            <span class="stat-label">Posts</span>
         </div>
         <div class="stat-item">
             <span class="stat-value">${Math.floor(Math.random() * 1000)}</span>
